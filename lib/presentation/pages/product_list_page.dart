@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:klontong/presentation/blocs/list/product_list_bloc.dart';
@@ -18,12 +20,28 @@ class ProductListPage extends StatefulWidget {
 class _ProductListPageState extends State<ProductListPage> {
   final _controller = TextEditingController();
   bool _isGridView = false;
+  final _scrollController = ScrollController();
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
 
     context.read<ProductListBloc>().add(ProductListLoaded());
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        context.read<ProductListBloc>().add(ProductListLoadMore());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _onRefresh() async {
@@ -40,6 +58,22 @@ class _ProductListPageState extends State<ProductListPage> {
         withScope: (scope) {
           scope.setTag('page', 'ProductListPage');
         },
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Error simulation sent successfully'),
+            ],
+          ),
+          backgroundColor: const Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
       rethrow;
     }
@@ -62,54 +96,53 @@ class _ProductListPageState extends State<ProductListPage> {
               Expanded(
                 child: BlocBuilder<ProductListBloc, ProductListState>(
                   builder: (context, state) {
-                    switch (state.status) {
-                      case ProductListStatus.loading:
-                        return _buildShimmer();
-                      case ProductListStatus.failure:
-                        return Center(
-                          child: Text(state.error ?? 'Unknown error'),
-                        );
-                      case ProductListStatus.success:
-                        final data = state.data!;
+                    if (state.status == ProductListStatus.loading) {
+                      return _buildShimmer();
+                    }
+                    // Error state tetap bisa pull-to-refresh
+                    else if (state.status == ProductListStatus.failure) {
+                      return RefreshIndicator(
+                        onRefresh: _onRefresh,
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            const SizedBox(height: 200),
+                            Center(
+                              child: Text(
+                                state.error ?? 'Unknown error',
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    // Success & loadingMore state
+                    else if (state.status == ProductListStatus.success ||
+                        state.status == ProductListStatus.loadingMore) {
+                      final data = state.data!;
+                      if (data.totalItems == 0) {
                         return RefreshIndicator(
                           onRefresh: _onRefresh,
-                          child:
-                              data.totalItems == 0
-                                  ? ListView(
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(),
-                                    children: const [
-                                      SizedBox(height: 200),
-                                      Center(child: Text('No products')),
-                                    ],
-                                  )
-                                  : Column(
-                                    children: [
-                                      Expanded(
-                                        child:
-                                            _isGridView
-                                                ? _buildGridView(data.items)
-                                                : _buildListView(data.items),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      _Pagination(
-                                        current: data.pageIndex,
-                                        pageSize: data.pageSize,
-                                        totalItems: data.totalItems,
-                                        onChanged:
-                                            (idx) => context
-                                                .read<ProductListBloc>()
-                                                .add(
-                                                  ProductListPageChanged(idx),
-                                                ),
-                                      ),
-                                    ],
-                                  ),
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 200),
+                              Center(child: Text('No products')),
+                            ],
+                          ),
                         );
-
-                      default:
-                        return const SizedBox.shrink();
+                      }
+                      return RefreshIndicator(
+                        onRefresh: _onRefresh,
+                        child:
+                            _isGridView
+                                ? _buildGridView(data.items, state)
+                                : _buildListView(data.items, state),
+                      );
                     }
+
+                    return const SizedBox.shrink();
                   },
                 ),
               ),
@@ -241,16 +274,39 @@ class _ProductListPageState extends State<ProductListPage> {
                   horizontal: 16,
                   vertical: 12,
                 ),
+                suffixIcon:
+                    _controller.text.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.grey),
+                          onPressed: () {
+                            _controller.clear();
+                            context.read<ProductListBloc>().add(
+                              ProductListQueryChanged(''),
+                            );
+                            setState(() {}); // refresh biar X hilang
+                          },
+                        )
+                        : null,
               ),
-              onSubmitted:
-                  (v) => context.read<ProductListBloc>().add(
-                    ProductListQueryChanged(v),
-                  ),
+              onChanged: (value) {
+                if (_debounce?.isActive ?? false) _debounce!.cancel();
+                _debounce = Timer(const Duration(milliseconds: 400), () {
+                  context.read<ProductListBloc>().add(
+                    ProductListQueryChanged(value),
+                  );
+                });
+                setState(() {}); // update suffixIcon
+              },
+              onSubmitted: (value) {
+                // Optional: langsung search saat tekan enter
+                context.read<ProductListBloc>().add(
+                  ProductListQueryChanged(value),
+                );
+              },
             ),
           ),
         ),
         const SizedBox(width: 12),
-
         _buildIconBox(
           icon: _isGridView ? Icons.view_list : Icons.grid_view,
           onTap: () {
@@ -283,11 +339,21 @@ class _ProductListPageState extends State<ProductListPage> {
     );
   }
 
-  Widget _buildListView(List<dynamic> items) {
+  Widget _buildListView(List<dynamic> items, ProductListState state) {
     return ListView.separated(
-      itemCount: items.length,
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount:
+          items.length +
+          (state.status == ProductListStatus.loadingMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
+        if (i >= items.length) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
         final p = items[i];
         return ProductCard(
           product: p,
@@ -306,16 +372,25 @@ class _ProductListPageState extends State<ProductListPage> {
     );
   }
 
-  Widget _buildGridView(List<dynamic> items) {
+  Widget _buildGridView(List<dynamic> items, ProductListState state) {
     return GridView.builder(
+      controller: _scrollController,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
         childAspectRatio: 0.75,
       ),
-      itemCount: items.length,
+      itemCount:
+          items.length +
+          (state.status == ProductListStatus.loadingMore ? 1 : 0),
       itemBuilder: (context, i) {
+        if (i >= items.length) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
         final p = items[i];
         return ProductGridCard(
           product: p,
@@ -353,60 +428,5 @@ class _ProductListPageState extends State<ProductListPage> {
         itemBuilder: (_, __) => const ProductShimmer(),
       );
     }
-  }
-}
-
-class _Pagination extends StatelessWidget {
-  final int current;
-  final int pageSize;
-  final int totalItems;
-  final ValueChanged<int> onChanged;
-
-  const _Pagination({
-    required this.current,
-    required this.pageSize,
-    required this.totalItems,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final totalPages = (totalItems / pageSize).ceil();
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            onPressed: current > 0 ? () => onChanged(current - 1) : null,
-            icon: const Icon(Icons.chevron_left),
-            splashRadius: 20,
-          ),
-          Text(
-            'Page ${current + 1} / $totalPages',
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-          IconButton(
-            onPressed:
-                (current + 1) < totalPages
-                    ? () => onChanged(current + 1)
-                    : null,
-            icon: const Icon(Icons.chevron_right),
-            splashRadius: 20,
-          ),
-        ],
-      ),
-    );
   }
 }

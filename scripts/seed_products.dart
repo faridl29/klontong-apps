@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:dio/dio.dart';
 
-const crudKey = 'b4ba00a5f3554cab93e42d624c31cb91';
+const crudKey = 'e5a464c3b03a4f0ba4f1f1c2df5c6443';
 const collection = 'products';
 final baseUrl = 'https://crudcrud.com/api/$crudKey/$collection';
 
 final categories = [
-  {'id': 10, 'name': 'Cemilan'},
-  {'id': 20, 'name': 'Minuman'},
-  {'id': 30, 'name': 'Bumbu'},
-  {'id': 40, 'name': 'Sembako'},
+  {'id': 10, 'name': 'Snacks'},
+  {'id': 20, 'name': 'Drinks'},
+  {'id': 30, 'name': 'Spices'},
+  {'id': 40, 'name': 'Staple Foods'},
 ];
 
 final random = Random();

@@ -46,7 +46,11 @@ class ProductRepositoryImpl implements ProductRepository {
     final end = (start + pageSize) > total ? total : (start + pageSize);
     final items =
         (start < total)
-            ? filtered.sublist(start, end).map((e) => e.toEntity()).toList()
+            ? filtered.reversed
+                .toList()
+                .sublist(start, end)
+                .map((e) => e.toEntity())
+                .toList()
             : <Product>[];
 
     return PaginatedList<Product>(

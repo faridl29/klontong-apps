@@ -485,21 +485,112 @@ class _ProductFormPageState extends State<ProductFormPage> {
     if (!_formKey.currentState!.validate()) return;
     if (!mounted) return;
 
-    final p = Product(
-      id: '',
-      categoryId: int.parse(_categoryId.text),
-      categoryName: _categoryName.text,
-      sku: _sku.text,
-      name: _name.text,
-      description: _desc.text,
-      weight: int.parse(_weight.text),
-      width: int.parse(_width.text),
-      length: int.parse(_length.text),
-      height: int.parse(_height.text),
-      image: _image.text,
-      price: int.parse(price.text),
-    );
+    _showConfirmationDialog(context);
+  }
 
-    context.read<ProductAddBloc>().add(ProductSubmitted(p));
+  void _showConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_outline,
+                    color: Color(0xFF10B981),
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                Text(
+                  'Save Product?',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                const Text(
+                  'Are you sure you want to save this product?\nPlease check the details again before confirming.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+
+                          final p = Product(
+                            id: '',
+                            categoryId: int.parse(_categoryId.text),
+                            categoryName: _categoryName.text,
+                            sku: _sku.text,
+                            name: _name.text,
+                            description: _desc.text,
+                            weight: int.parse(_weight.text),
+                            width: int.parse(_width.text),
+                            length: int.parse(_length.text),
+                            height: int.parse(_height.text),
+                            image: _image.text,
+                            price: int.parse(price.text),
+                          );
+
+                          context.read<ProductAddBloc>().add(
+                            ProductSubmitted(p),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Yes, Save',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

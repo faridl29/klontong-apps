@@ -17,6 +17,7 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
     on<ProductListLoaded>(_onLoaded);
     on<ProductListPageChanged>(_onPageChanged);
     on<ProductListQueryChanged>(_onQueryChanged);
+    on<ProductListLoadMore>(_onLoadMore);
   }
 
   Future<void> _onLoaded(
@@ -24,8 +25,7 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
     Emitter<ProductListState> emit,
   ) async {
     final lastQuery = prefs.getString('last_query') ?? '';
-    final lastPage = prefs.getInt('last_page') ?? 0;
-    await _fetch(emit, pageIndex: lastPage, query: lastQuery);
+    await _fetch(emit, pageIndex: 0, query: lastQuery);
   }
 
   Future<void> _onPageChanged(
@@ -61,6 +61,45 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
           status: ProductListStatus.success,
           data: result,
           query: query,
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(status: ProductListStatus.failure, error: e.toString()),
+      );
+    }
+  }
+
+  Future<void> _onLoadMore(
+    ProductListLoadMore event,
+    Emitter<ProductListState> emit,
+  ) async {
+    if (state.status == ProductListStatus.loadingMore || state.data == null) {
+      return;
+    }
+
+    final data = state.data!;
+    final nextPage = data.pageIndex + 1;
+
+    if (nextPage * state.pageSize >= data.totalItems) return;
+
+    try {
+      emit(state.copyWith(status: ProductListStatus.loadingMore));
+
+      final result = await getProducts(
+        pageIndex: nextPage,
+        pageSize: state.pageSize,
+        query: state.query.isEmpty ? null : state.query,
+      );
+
+      emit(
+        state.copyWith(
+          status: ProductListStatus.success,
+          data: data.copyWith(
+            items: [...data.items, ...result.items],
+            pageIndex: result.pageIndex,
+            totalItems: result.totalItems,
+          ),
         ),
       );
     } catch (e) {

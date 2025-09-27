@@ -22,3 +22,5 @@ class ProductListQueryChanged extends ProductListEvent {
   @override
   List<Object?> get props => [query];
 }
+
+class ProductListLoadMore extends ProductListEvent {}

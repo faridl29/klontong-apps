@@ -4,7 +4,7 @@ fvm 3.29.0
 # Running App 
 fvm flutter pub get
 fvm flutter run \
-  --dart-define=CRUDCRUD_BASE_URL=https://crudcrud.com/api/b4ba00a5f3554cab93e42d624c31cb91 \
+  --dart-define=CRUDCRUD_BASE_URL=https://crudcrud.com/api/e5a464c3b03a4f0ba4f1f1c2df5c6443 \
   --dart-define=PRODUCTS_COLLECTION=products \
   --dart-define=SENTRY_DSN=https://059848a01c35562cd9af78f3a475a5fb@o4510089980739584.ingest.us.sentry.io/4510089982509056
 
