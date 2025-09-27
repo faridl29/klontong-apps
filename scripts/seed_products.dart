@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:dio/dio.dart';
 
-const crudKey = 'e5a464c3b03a4f0ba4f1f1c2df5c6443';
+const crudKey = 'cb5e1c4efc1b463ea490466b18f74219';
 const collection = 'products';
 final baseUrl = 'https://crudcrud.com/api/$crudKey/$collection';
 
