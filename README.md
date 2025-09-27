@@ -1,20 +1,3 @@
-# klontong
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-
 # Flutter Version
 fvm 3.29.0
 
@@ -28,7 +11,7 @@ fvm flutter run \
 # Run seeder for generate 20 product
 - open seed_products.dart
 - replace crudKey with your crudcrud key
-- run dart run scripts/seed_products.dart
+- run 'dart run scripts/seed_products.dart'
 
 # Test App
 fvm flutter test
