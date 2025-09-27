@@ -15,10 +15,15 @@ fvm flutter run \
 ## Run seeder for generate 20 product
 - open seed_products.dart
 - replace crudKey with your crudcrud key
-- run ```dart run scripts/seed_products.dart```
+- run
+  ```
+  dart run scripts/seed_products.dart
+  ```
 
 ## Test App
-```fvm flutter test```
+```
+fvm flutter test
+```
 
 ## Simulate Error with sentry_flutter
 - Klik Button Simulate Error
