@@ -11,6 +11,7 @@ fvm flutter run \
   --dart-define=PRODUCTS_COLLECTION=products \
   --dart-define=SENTRY_DSN=https://059848a01c35562cd9af78f3a475a5fb@o4510089980739584.ingest.us.sentry.io/4510089982509056
 ```
+Notes: "Change CRUDCRUD Key when running apps and run seeder with your CRUDCRUD Key"
 
 ## Run seeder for generate 20 product
 - open seed_products.dart
